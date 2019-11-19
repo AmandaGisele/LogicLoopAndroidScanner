@@ -8,7 +8,7 @@
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="com.google.android.gms.permission.ACTIVITY_RECOGNITION"/>
 
     <application
         android:allowBackup="true"
@@ -25,18 +25,20 @@
         </activity>
 
         <service
-            android:name=".ScanService"
+            android:name=".services.ScanService"
             android:enabled="true">
         </service>
 
+        ​<service android:name=".services.PositionUpdateService" android:label="Position Update Service" android:permission="android.permission.BIND_JOB_SERVICE" ></service>
+
         <receiver
-            android:name=".AlarmReceiverLife"
+            android:name="com.internalpositioning.find3.find3app.transitions.TransitionRecognitionReceiver"
             android:enabled="true"
-            android:exported="true"
-            android:label="AlarmReceiverLifeClass"
-            android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
+            android:exported="false"
+            android:label="TransitionRecognitionReceiverClass"
+            android:permission="com.google.android.gms.permission.ACTIVITY_RECOGNITION">
             <intent-filter>
-                <action android:name="AlarmReceiverLife" />
+                <action android:name="com.internalpositioning.find3.find3app.ACTION_PROCESS_ACTIVITY_TRANSITIONS" />
             </intent-filter>
         </receiver>
 

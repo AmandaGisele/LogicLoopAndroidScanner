@@ -1,4 +1,4 @@
-package com.internalpositioning.find3.find3app;
+package com.internalpositioning.find3.find3app.services;
 
 import android.app.Activity;
 import android.app.Notification;
@@ -123,47 +123,6 @@ public class ScanService extends Service {
                 0
         );
 
-
-        new java.util.Timer().schedule(
-                new java.util.TimerTask() {
-                    @Override
-                    public void run() {
-                        synchronized (lock) {
-                            if (isScanning == false) {
-                                doScan();
-                            }
-                        }
-                    }
-                },
-                10000
-        );
-
-        new java.util.Timer().schedule(
-                new java.util.TimerTask() {
-                    @Override
-                    public void run() {
-                        synchronized (lock) {
-                            if (isScanning == false) {
-                                doScan();
-                            }
-                        }
-                    }
-                },
-                20000
-        );
-        new java.util.Timer().schedule(
-                new java.util.TimerTask() {
-                    @Override
-                    public void run() {
-                        synchronized (lock) {
-                            if (isScanning == false) {
-                                doScan();
-                            }
-                        }
-                    }
-                },
-                30000
-        );
         new java.util.Timer().schedule(
                 new java.util.TimerTask() {
                     @Override
@@ -176,7 +135,7 @@ public class ScanService extends Service {
                         stopSelf(); // stop the service
                     }
                 },
-                40000
+                5000
         );
 
         return START_STICKY;
@@ -218,7 +177,6 @@ public class ScanService extends Service {
         }
         stopSelf();
         super.onDestroy();
-
     }
 
     private final BroadcastReceiver mWifiScanReceiver = new BroadcastReceiver() {

@@ -1,4 +1,4 @@
-package com.internalpositioning.find3.find3app
+package com.internalpositioning.find3.find3app.transitions
 
 import com.google.android.gms.location.ActivityTransition
 import com.google.android.gms.location.ActivityTransitionEvent

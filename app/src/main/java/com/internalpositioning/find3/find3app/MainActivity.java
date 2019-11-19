@@ -2,41 +2,30 @@ package com.internalpositioning.find3.find3app;
 
 import android.Manifest;
 import android.app.AlarmManager;
-import android.app.Notification;
-import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.location.Location;
-import android.location.LocationManager;
-import android.net.wifi.ScanResult;
-import android.net.wifi.WifiManager;
-import android.os.Build;
 import android.os.SystemClock;
-import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v4.app.NotificationCompat;
-import android.text.TextUtils;
 import android.text.util.Linkify;
 import android.util.Log;
-import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
-import android.widget.SimpleAdapter;
 import android.widget.TextView;
-import android.widget.Toast;
 import android.widget.ToggleButton;
+
+import com.internalpositioning.find3.find3app.jobs.JobScheduleUtil;
+import com.internalpositioning.find3.find3app.services.ScanService;
+import com.internalpositioning.find3.find3app.transitions.TransitionRecognition;
+import com.internalpositioning.find3.find3app.transitions.TransitionRecognitionReceiver;
 
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
@@ -56,20 +45,21 @@ public class MainActivity extends AppCompatActivity {
 
 
     // background manager
-    private PendingIntent recurringLl24 = null;
-    private Intent ll24 = null;
-    AlarmManager alarms = null;
-    WebSocketClient mWebSocketClient = null;
     Timer timer = null;
     private RemindTask oneSecondTimer = null;
+
+    WebSocketClient mWebSocketClient = null;
+
+    //Transition Recognition
+    private TransitionRecognition mTransitionRecognition = null;
 
     private String[] autocompleteLocations = new String[] {"bedroom","living room","kitchen","bathroom", "office"};
 
     @Override
     protected void onDestroy() {
         Log.d(TAG, "MainActivity onDestroy()");
-        if (alarms != null) alarms.cancel(recurringLl24);
         if (timer != null) timer.cancel();
+        JobScheduleUtil.cancelAll(this);
         if (mWebSocketClient != null) {
             mWebSocketClient.close();
         }
@@ -112,6 +102,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_main);
 
         // check permissions
@@ -149,7 +140,7 @@ public class MainActivity extends AppCompatActivity {
                 TextView rssi_msg = (TextView) findViewById(R.id.textOutput);
                 rssi_msg.setText("not running");
                 Log.d(TAG, "toggle set to false");
-                if (alarms != null) alarms.cancel(recurringLl24);
+                JobScheduleUtil.cancelAll(getApplicationContext());
                 android.app.NotificationManager mNotificationManager = (android.app.NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
                 mNotificationManager.cancel(0);
                 if (timer != null) timer.cancel();
@@ -214,30 +205,22 @@ public class MainActivity extends AppCompatActivity {
                     editor.commit();
 
                     rssi_msg.setText("running");
-                    // 24/7 alarm
-                    ll24 = new Intent(MainActivity.this, AlarmReceiverLife.class);
-                    Log.d(TAG, "setting familyName to [" + familyName + "]");
-                    ll24.putExtra("familyName", familyName);
-                    ll24.putExtra("deviceName", deviceName);
-                    ll24.putExtra("serverAddress", serverAddress);
-                    ll24.putExtra("locationName", locationName);
-                    ll24.putExtra("allowGPS",allowGPS);
-                    recurringLl24 = PendingIntent.getBroadcast(MainActivity.this, 0, ll24, PendingIntent.FLAG_CANCEL_CURRENT);
-                    alarms = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-                    alarms.setRepeating(AlarmManager.RTC_WAKEUP, SystemClock.currentThreadTimeMillis(), 60000, recurringLl24);
+
                     timer = new Timer();
                     oneSecondTimer = new RemindTask();
                     timer.scheduleAtFixedRate(oneSecondTimer, 1000, 1000);
+                    initTransitionRecognition();
                     connectWebSocket();
 
+                    //Create notification
                     String scanningMessage = "Scanning for " + familyName + "/" + deviceName;
                     if (locationName.equals("") == false) {
                         scanningMessage += " at " + locationName;
                     }
                     NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(MainActivity.this)
                             .setSmallIcon(R.drawable.ic_stat_name)
-                            .setContentTitle(scanningMessage)
-                            .setContentIntent(recurringLl24);
+                            .setContentTitle(scanningMessage);
+
                     //specifying an action and its category to be triggered once clicked on the notification
                     Intent resultIntent = new Intent(MainActivity.this, MainActivity.class);
                     resultIntent.setAction("android.intent.action.MAIN");
@@ -257,7 +240,8 @@ public class MainActivity extends AppCompatActivity {
                     TextView rssi_msg = (TextView) findViewById(R.id.textOutput);
                     rssi_msg.setText("not running");
                     Log.d(TAG, "toggle set to false");
-                    alarms.cancel(recurringLl24);
+                    stopTransitionRecognition();
+                    JobScheduleUtil.cancelAll(getApplicationContext());
                     android.app.NotificationManager mNotificationManager = (android.app.NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
                     mNotificationManager.cancel(0);
                     timer.cancel();
@@ -387,7 +371,12 @@ public class MainActivity extends AppCompatActivity {
         mWebSocketClient.connect();
     }
 
+    private void initTransitionRecognition(){
+        mTransitionRecognition = new TransitionRecognition();
+        mTransitionRecognition.startTracking(this);
+    }
 
-
-
+    private void stopTransitionRecognition() {
+        mTransitionRecognition.stopTracking();
+    }
 }
