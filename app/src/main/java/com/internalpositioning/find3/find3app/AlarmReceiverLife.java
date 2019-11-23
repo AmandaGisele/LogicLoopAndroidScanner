@@ -30,7 +30,7 @@ public class AlarmReceiverLife extends BroadcastReceiver {
         Log.d(TAG,"familyName: "+ familyName);
 
         PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
-        wakeLock = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK |
+        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK |
                 PowerManager.ACQUIRE_CAUSES_WAKEUP |
                 PowerManager.ON_AFTER_RELEASE, "WakeLock");
         wakeLock.acquire();
